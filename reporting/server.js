@@ -1,4 +1,9 @@
-var http = require('http');
+var http = require('http')
+  , events = require('events')
+  , util = require('util')
+  , path = require('path')
+  , fs = require('fs')
+  ;
 /**
 * trackedMetrics is an object with eventTypes as keys and metrics object as values.
 * This server will print the object upon request.  The user should update the metrics
@@ -18,17 +23,32 @@ var Server = module.exports = function Server(port, trackedMetrics) {
         }
       }
       res.end(JSON.stringify(metricsObj));
-    } else {
-      res.writeHead(404, {'Content-Type': 'text/plain'});
-      res.end('Try hitting /metrics instead');
+      return;
+    } 
+    if (req.url === '/' || req.url === '/index.html') {
+      res.statusCode = 200
+      res.setHeader('content-type', 'text/html')
+      fs.createReadStream(path.join(__dirname, 'index.html')).pipe(res)
+      return;
     }
-  }).listen(port, "127.0.0.1");
+    if (req.url.slice(0, '/static'.length) === '/static') {
+      res.statusCode = 200
+      res.setHeader('content-type', 'text/javascript')
+      fs.createReadStream(path.join(__dirname, req.url.slice(1))).pipe(res)
+      return;
+    }
+  })
+  if (port) {
+    this.listen(port, "127.0.0.1");  
+  }
 }
+util.inherits(Server, events.EventEmitter)
 
 Server.prototype.addMetric = function(eventName, metric) {
   var namespaces = eventName.split('.')
     , event = namespaces.pop()
-    , namespace = namespaces.join('.');
+    , namespace = namespaces.join('.')
+    ;
   if (!this.trackedMetrics[namespace]) {
     this.trackedMetrics[namespace] = {};
   }
@@ -36,4 +56,10 @@ Server.prototype.addMetric = function(eventName, metric) {
     this.trackedMetrics[namespace][event] = metric;
   }
 }
+
+Server.prototype.listen = function () {
+  var self = this;
+  self.server.listen.apply(self.server, arguments);
+} 
+
 

@@ -1,0 +1,129 @@
+<html>
+  <head>
+    <title>Realtime Metrics</title>
+  
+    <script type="text/javascript" src="/static/jquery.js"></script>
+    <script src="/static/highcharts.js" type="text/javascript"></script>
+    
+  </head>
+  
+  <body>    
+    
+    <script>      
+      var allCharts = {}
+    
+      setInterval(function () {
+        $.ajax(
+          { url: '/metrics'
+          , success: function (resp) {
+              var parseNS = function (data, ns) {
+                for (i in data) {
+                  if (data[i].rate) {
+                    if (!allCharts[ns+i]) {
+                      $('div#charts').append('<div id="'+ns+i+'">')
+                      allCharts[ns+i] = createChart({title:ns+i, selector:ns+i})
+                    }
+                    allCharts[ns+i](data[i])
+                  } else {
+                    parseNS(data[i], ns+i+'-')
+                  }
+                }
+              }
+              parseNS(resp, '')
+            }
+          } 
+        )
+      }, 3000)
+            
+      // Randomly add a data point every 500ms
+      
+      Highcharts.setOptions({global: {useUTC: false}})
+      
+      function createChart (options) {
+        var series;
+        var chart = new Highcharts.Chart(
+          { chart: 
+            { renderTo: options.selector
+            , defaultSeriesType: 'spline'
+            , marginRight: 10
+            , events: 
+              { load: function() {
+                  // set up the updating of the chart each second
+                  series = this.series
+                }
+              }
+            }
+          , title: 
+            { text: options.title }
+          , xAxis: 
+            { type: 'datetime'
+            , tickPixelInterval: 150
+            }
+          , yAxis: 
+            { title: { text: 'Value'}
+            , plotLines: 
+              [ { value: 0
+                , width: 1
+                , color: '#808080'
+                }
+              ]
+            }
+          , tooltip: 
+            { formatter: function(x, y) {
+            
+                var x = Highcharts.dateFormat('%Y-%m-%d %H:%M:%S', this.x) +'<br/>'
+                x += '<b>count</b>:'+this.point.data.duration.count+'<br>'
+                x += '<b>rate</b>: '
+                x +=   '<b>mean</b>:'+this.point.data.rate.mean.toString().slice(0, 8)+'<b> </b>'
+                x +=   '<b>}</b>'
+                x += '<br>'
+                x += '<b>duration</b>: <br>'
+                x +=  JSON.stringify(this.point.data.duration, null, 2, 2).replace(/\n/g, "<br>")
+                return x
+              }
+            }
+          , legend: { enabled: false}
+          , exporting: { enabled: false }
+          , series: 
+            [{ name: options.title,
+               data: 
+                [ {x: (new Date()).getTime() - (21 * 1000), y: 0}
+                , {x: (new Date()).getTime() - (20 * 1000), y: 0}
+                , {x: (new Date()).getTime() - (19 * 1000), y: 0}
+                , {x: (new Date()).getTime() - (18 * 1000), y: 0}
+                , {x: (new Date()).getTime() - (17 * 1000), y: 0}
+                , {x: (new Date()).getTime() - (16 * 1000), y: 0}
+                , {x: (new Date()).getTime() - (15 * 1000), y: 0}
+                , {x: (new Date()).getTime() - (14 * 1000), y: 0}
+                , {x: (new Date()).getTime() - (13 * 1000), y: 0}
+                , {x: (new Date()).getTime() - (12 * 1000), y: 0}
+                , {x: (new Date()).getTime() - (11 * 1000), y: 0}
+                , {x: (new Date()).getTime() - (10 * 1000), y: 0}
+                , {x: (new Date()).getTime() - (9 * 1000), y: 0}
+                , {x: (new Date()).getTime() - (8 * 1000), y: 0}
+                , {x: (new Date()).getTime() - (7 * 1000), y: 0}
+                , {x: (new Date()).getTime() - (6 * 1000), y: 0}
+                , {x: (new Date()).getTime() - (5 * 1000), y: 0}
+                , {x: (new Date()).getTime() - (4 * 1000), y: 0}
+                , {x: (new Date()).getTime() - (3 * 1000), y: 0}
+                , {x: (new Date()).getTime() - (2 * 1000), y: 0}
+                , {x: (new Date()).getTime() - (1 * 1000), y: 0}
+                ]
+            }]
+          }
+        );
+        
+        var ret = function (data) {
+          var x = (new Date()).getTime()
+            , y = Math.random()
+            ;
+
+          if (series) series[0].addPoint({x:(new Date()).getTime(), y:data.rate.mean, data:data}, true, true);
+        } 
+        return ret;
+      }
+    </script>
+    <div id="charts"></div>
+  </body>
+    
+</html>
